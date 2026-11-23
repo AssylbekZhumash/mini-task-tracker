@@ -7,6 +7,7 @@ import {
   loadTasks,
   saveTasks,
   STORAGE_KEY,
+  BACKUP_KEY,
 } from "./tasks.js";
 
 // A tiny fake localStorage so the tests don't need a browser.
@@ -15,6 +16,21 @@ function createFakeStorage() {
   return {
     getItem: (key) => (key in data ? data[key] : null),
     setItem: (key, value) => {
+      data[key] = String(value);
+    },
+  };
+}
+
+// A fake storage whose setItem throws for the primary key, simulating a full
+// or unavailable localStorage quota.
+function createQuotaFakeStorage() {
+  const data = {};
+  return {
+    getItem: (key) => (key in data ? data[key] : null),
+    setItem: (key, value) => {
+      if (key === STORAGE_KEY) {
+        throw new Error("QuotaExceededError");
+      }
       data[key] = String(value);
     },
   };
@@ -89,5 +105,31 @@ describe("localStorage helpers", () => {
     const storage = createFakeStorage();
     storage.setItem(STORAGE_KEY, "not valid json");
     expect(loadTasks(storage)).toEqual([]);
+  });
+
+  it("falls back to the backup copy when the primary data is corrupt", () => {
+    const storage = createFakeStorage();
+    storage.setItem(BACKUP_KEY, JSON.stringify(sample));
+    storage.setItem(STORAGE_KEY, "not valid json");
+    expect(loadTasks(storage)).toEqual(sample);
+  });
+
+  it("returns an empty list when both primary and backup are corrupt", () => {
+    const storage = createFakeStorage();
+    storage.setItem(STORAGE_KEY, "not valid json");
+    storage.setItem(BACKUP_KEY, "also not json");
+    expect(loadTasks(storage)).toEqual([]);
+  });
+
+  it("returns false and keeps the backup when the primary write fails", () => {
+    const storage = createQuotaFakeStorage();
+    const ok = saveTasks(sample, storage);
+    expect(ok).toBe(false);
+    expect(loadTasks(storage)).toEqual(sample);
+  });
+
+  it("returns true when the primary write succeeds", () => {
+    const storage = createFakeStorage();
+    expect(saveTasks(sample, storage)).toBe(true);
   });
 });

@@ -21,10 +21,12 @@ function App() {
   const [tasks, setTasks] = useState(() => loadTasks());
   const [searchText, setSearchText] = useState("");
   const [status, setStatus] = useState("all");
+  const [saveError, setSaveError] = useState(false);
 
   // Save tasks every time they change.
   useEffect(() => {
-    saveTasks(tasks);
+    const ok = saveTasks(tasks);
+    setSaveError(!ok);
   }, [tasks]);
 
   const visibleTasks = filterTasks(tasks, searchText, status);
@@ -38,6 +40,12 @@ function App() {
           {activeCount} active of {tasks.length} total
         </p>
       </header>
+
+      {saveError && (
+        <p className="save-warning" role="alert">
+          Could not save tasks &mdash; storage may be full. Changes will not be kept after reload.
+        </p>
+      )}
 
       <TaskForm onAdd={(title) => setTasks(addTask(tasks, title))} />
 

@@ -2,6 +2,7 @@
 // Keeping the logic here (outside React) makes it easy to test.
 
 export const STORAGE_KEY = "mini-task-tracker.tasks";
+export const BACKUP_KEY = "mini-task-tracker.tasks.bak";
 
 // Add a new task to the list. Empty titles are ignored.
 export function addTask(tasks, title) {
@@ -42,23 +43,38 @@ export function filterTasks(tasks, searchText, status) {
   });
 }
 
-// Read tasks from localStorage. Returns [] if nothing valid is stored.
-export function loadTasks(storage = globalThis.localStorage) {
+// Parse stored JSON into a task array, or null if it cannot be trusted.
+function parseTasks(raw) {
+  if (!raw) return null;
   try {
-    const raw = storage.getItem(STORAGE_KEY);
-    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? parsed : null;
   } catch {
-    return [];
+    return null;
   }
 }
 
-// Save tasks to localStorage.
+// Read tasks from localStorage. Falls back to a backup copy if the primary
+// data is corrupt or missing, returning [] only when both are unavailable.
+export function loadTasks(storage = globalThis.localStorage) {
+  return parseTasks(storage.getItem(STORAGE_KEY))
+    ?? parseTasks(storage.getItem(BACKUP_KEY))
+    ?? [];
+}
+
+// Save tasks to localStorage. Writes a backup copy first so a failed or
+// interrupted primary write cannot erase the last good state. Returns true
+// on success and false if the primary write failed (the backup is preserved).
 export function saveTasks(tasks, storage = globalThis.localStorage) {
   try {
-    storage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    storage.setItem(BACKUP_KEY, JSON.stringify(tasks));
   } catch {
-    // Storage may be full or unavailable; the app keeps working without saving.
+    // Keep going: the previous backup may still allow recovery on load.
+  }
+  try {
+    storage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    return true;
+  } catch {
+    return false;
   }
 }

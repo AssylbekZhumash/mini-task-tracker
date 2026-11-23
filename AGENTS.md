@@ -1,127 +1,86 @@
 # AGENTS.md — Mini Task Tracker
 
-Instructions for any AI agent (or human contributor) working in this repository.
-Read this file before making any change.
+Instructions for AI coding agents and human contributors. Read before editing this repository.
 
 ## Project purpose
 
-A small React 18 + Vite task-tracking web app for a Software Engineering
-university assignment. Users can add tasks, mark them complete, delete them,
-search by title, and filter by status. Tasks persist in the browser's
-`localStorage`. There is no backend, no database, no authentication, and no
-external API. Keep changes small, well-justified, and consistent with this
-baseline.
+A small React 18 + Vite task manager used for Software Engineering Assignment #05. Users can add, complete, delete, search and filter tasks. Data persists in the browser's `localStorage`. No backend, database, authentication or external API is used.
 
 ## Architecture
 
-```
+```text
 mini-task-tracker/
-├── index.html              # Vite HTML entry; loads /src/main.jsx
-├── vite.config.js          # Vite + @vitejs/plugin-react
-├── package.json            # Scripts and dependencies
-├── src/
-│   ├── main.jsx            # React DOM bootstrap (StrictMode)
-│   ├── App.jsx             # Main component: state, search, filter, save-error banner
-│   ├── App.css             # All styling (single stylesheet, CSS variables)
-│   ├── components/
-│   │   ├── TaskForm.jsx    # New-task input + Add button
-│   │   ├── TaskList.jsx    # Renders the list or an empty message
-│   │   └── TaskItem.jsx    # One row: checkbox + delete button
-│   └── utils/
-│       ├── tasks.js        # Pure task helpers + localStorage I/O (with backup fallback)
-│       └── tasks.test.js   # Vitest unit tests for the helpers
-└── AGENTS.md               # This file
+├── index.html
+├── package.json
+├── package-lock.json
+├── vite.config.js          # Vite and Vitest jsdom configuration
+├── README.md
+├── AGENTS.md
+└── src/
+    ├── main.jsx            # React entry point
+    ├── App.jsx             # State, filters and save-error warning
+    ├── App.css             # Styles
+    ├── components/
+    │   ├── TaskForm.jsx
+    │   ├── TaskList.jsx
+    │   ├── TaskItem.jsx
+    │   └── TaskItem.test.jsx # Checkbox interaction test
+    └── utils/
+        ├── tasks.js        # Task helpers and persistence
+        └── tasks.test.js   # Helper tests
 ```
 
-Key design choices:
-
-- **Pure-helper separation.** All task logic (add, toggle, delete, filter,
-  load, save) lives in `src/utils/tasks.js` as plain functions outside React.
-  This keeps the logic testable without rendering components. Do not move this
-  logic into components.
-- **State ownership.** `App.jsx` owns the task array in React state and passes
-  data + callbacks down to the presentational components.
-- **Persistence.** `saveTasks` writes a backup copy before the primary
-  `localStorage` key; `loadTasks` falls back to the backup when the primary is
-  corrupt. `saveTasks` returns `true`/`false` so the UI can surface a warning
-  when storage is unavailable.
-- **No backend.** Do not add a database, server, or network calls.
+Task operations and localStorage functions are separated in `src/utils/tasks.js`, outside React. `App.jsx` owns task state and passes data and callbacks to the presentational components. `saveTasks` writes a backup before the primary key and returns a success flag. `loadTasks` falls back to the backup when the primary key is invalid.
 
 ## Safe commands
 
-| Command            | Purpose                              | Expected result                     |
-| ------------------ | ------------------------------------ | ----------------------------------- |
-| `npm install`      | Install dependencies.                | `node_modules` populated.           |
-| `npm test`         | Run the Vitest suite.                | All tests pass, exit code 0.        |
-| `npm run build`    | Produce a production build in `dist`.| Build succeeds, exit code 0.        |
-| `npm run preview`  | Preview the production build.        | Local preview server starts.        |
+| Command | Purpose |
+| --- | --- |
+| `npm install` | Install approved dependencies |
+| `npm test` | Run the Vitest test suite |
+| `npm run build` | Produce the Vite build |
+| `npm run preview` | Preview the production build |
 
-Run `npm test` and `npm run build` before declaring any change complete.
-Both must pass. Do not run `npm run dev` inside this environment.
+Run `npm test` and `npm run build` after code changes; report actual exit codes and output. Run `npm run dev` only when an interactive development preview is appropriate.
 
 ## Coding conventions
 
-- Plain JSX + plain CSS. No TypeScript, no CSS-in-JS, no UI framework.
-- Match the existing import style, formatting, and naming.
-- Keep task logic in `src/utils/tasks.js` as pure functions.
-- Prefer editing existing files over creating new ones.
-- Keep functions pure where possible; pass dependencies as arguments
-  (e.g. the `storage` parameter on `loadTasks`/`saveTasks`).
-- Default to no comments. Add one only to explain a non-obvious "why"
-  (a hidden constraint, a subtle invariant, or a workaround).
-- Do not introduce abstractions or patterns unless there are at least two
-  concrete call sites that share a clear shape.
-- Keep dependencies minimal. Do not add a library without explicit approval.
-- No emojis in source files, comments, or user-facing text.
+- Use JavaScript/JSX and plain CSS, not TypeScript or an additional UI framework.
+- Keep task logic in `src/utils/tasks.js` and React state ownership in `App.jsx`.
+- Prefer small, focused changes. Do not introduce patterns without a demonstrated need.
+- Follow current naming/import conventions and keep dependencies minimal.
+- Prefer pure, testable helper functions and explicit arguments for storage dependencies.
+- Never introduce secrets, personal credentials or real user data.
 
 ## Test expectations
 
-- `npm test` must pass before any change is merged.
-- Every new or changed code path in `src/utils/tasks.js` must be accompanied
-  by tests in `src/utils/tasks.test.js`.
-- Tests must be deterministic and not require a real browser; use the fake
-  storage pattern already present in the test file.
-- Do not delete or weaken existing tests; extend them.
-- Component-level tests are not currently required, but any change to
-  `App.jsx` or the components should be verified by re-reading the edited
-  files, since there is no browser in this environment.
+- Preserve existing tests. Add focused tests for new or changed behavior.
+- Helper tests use a fake `localStorage` object; component tests can use the configured `jsdom` environment without a real browser.
+- As of the final Bolt session on 23 November 2026, **15 tests** were reported passing: **14 helper tests plus one `TaskItem` component test**.
+- The `TaskItem` test renders the component, clicks its checkbox and checks the `onToggle` callback receives the task ID.
+- `App.jsx` state wiring and `TaskForm` submission still lack automated component/integration tests. Include manual browser checks for UI-related changes where possible; disclose when those checks were not performed.
 
 ## Prohibited operations
 
-- Do NOT delete or rename existing tests; extend them instead.
-- Do NOT add a backend, database, authentication, or external API without
-  explicit written approval.
-- Do NOT change the tech stack (React / Vite / Vitest) or introduce TypeScript.
-- Do NOT remove the pure-helper separation in `src/utils/tasks.js`.
-- Do NOT commit or push `dist/`, `node_modules/`, or `.env` (see `.gitignore`).
-- Do NOT push to any remote or run destructive git operations (force-push,
-  history rewrite, branch deletion on the main branch).
-- Do NOT run `rm -rf` or any destructive filesystem command.
-- Do NOT modify `AGENTS.md`, `.gitignore`, or `package.json` without approval.
-- Do NOT introduce large frameworks, state libraries, or new dependencies.
-- Do NOT fabricate test or build output. Report only real results.
+- Do not add a backend, database, authentication, external API or change the tech stack without written approval.
+- Do not install or update dependencies, or modify `package.json`, lockfiles, `.gitignore` or this instruction file without approval.
+- Do not delete or weaken existing tests.
+- Do not commit `node_modules/`, `dist/`, `.env` or credentials.
+- Do not push, merge, deploy, force-push, rewrite history, or run destructive commands without explicit human approval.
+- Do not fabricate test logs, findings, UI verification or release evidence.
 
 ## Human review requirements
 
-- Before applying any non-trivial code change, show the proposed diff to the
-  owner and wait for approval.
-- After applying a change, run `npm test` and `npm run build` and report the
-  real stdout/stderr and exit codes.
-- New or changed logic in `src/utils/tasks.js` must be accompanied by tests.
-- UI changes must be verified by re-reading the edited files (no browser here).
-- Report verified facts vs. assumptions explicitly. Mark anything not
-  verified as "Needs verification". Never claim a check passed unless it was
-  actually executed in the current session.
-- Approval is per-run. A prior approval does not carry forward to later work.
+- Show proposed non-trivial code changes and diffs to the repository owner before applying them.
+- Limit edits to the approved scope; require a fresh approval for each separate operation.
+- Run and report real test/build checks after changes.
+- Review UI changes in code and, where possible, in an actual browser or preview. State clearly if browser testing was not performed.
+- Distinguish observed facts from plausible risks and unsupported AI assertions; disclose residual risks.
 
 ## Agent readiness
 
-- **Level 1 — Run & report:** execute safe commands, read files, report
-  results. Ready now.
-- **Level 2 — Scoped edits with review:** make small, well-scoped changes and
-  show diffs before applying. Ready now, governed by this file.
-- **Level 3 — Autonomous multi-file changes without pre-approval:** NOT ready.
-  The owner requires review-before-apply, and component-level test coverage
-  is not yet in place.
+- **Level 1 — Run and report:** supported by safe commands and documented setup.
+- **Level 2 — Scoped edits with review:** supported under this file's review and approval requirements.
+- **Level 3 — Unreviewed autonomous changes:** not approved. Human review remains mandatory and UI/integration coverage is limited.
 
-**Current readiness: Level 2.**
+**Current readiness assessment: Level 2.**
